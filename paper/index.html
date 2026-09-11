@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Refresh / Content Opportunity Scoring</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.7;
+      max-width: 950px;
+      margin: auto;
+      padding: 40px 20px;
+      color: #222;
+      background: #fafafa;
+    }
+
+    h1 {
+      line-height: 1.2;
+      font-size: 38px;
+    }
+
+    h2 {
+      margin-top: 45px;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      margin-top: 30px;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      color: #555;
+    }
+
+    .abstract {
+      background: white;
+      padding: 25px;
+      border-left: 5px solid #333;
+      margin: 25px 0;
+    }
+
+    .metric-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 25px 0;
+    }
+
+    .metric {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      flex: 1;
+      min-width: 220px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 32px;
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 25px 0;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #eee;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+      margin: 25px auto;
+      border: 1px solid #ddd;
+    }
+
+    .note {
+      background: #f1f1f1;
+      padding: 18px;
+      margin: 20px 0;
+    }
+
+    footer {
+      margin-top: 60px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Refresh / Content Opportunity Scoring</h1>
+
+    <p class="subtitle">
+      A machine-learning approach for prioritizing search discoverability
+      and content improvement opportunities
+    </p>
+
+    <p>
+      <strong>FlyRank ML Internship Capstone</strong>
+    </p>
+  </header>
+
+
+  <section>
+    <h2>Abstract</h2>
+
+    <div class="abstract">
+
+      <p>
+        This research asks whether historical search-performance signals can
+        help prioritize webpages that may require content investigation or
+        improvement. A classification-based machine-learning approach was
+        developed using page-level search-performance features from February
+        2026 and a March 2026 outcome window. The model was compared with a
+        transparent Week 4 baseline rule using the same held-out test split.
+        The ML model achieved a ROC-AUC of <strong>0.8314</strong>, compared
+        with <strong>0.2780</strong> for the baseline. These results provide
+        directional evidence that combining multiple historical signals can
+        produce a more useful prioritization ranking than the simple baseline,
+        while the output remains decision-support evidence rather than a
+        guarantee of future search performance.
+      </p>
+
+    </div>
+  </section>
+
+
+  <section>
+    <h2>1. Introduction / Problem Statement</h2>
+
+    <p>
+      Content teams may have many webpages that could potentially benefit from
+      investigation or improvement. Reviewing every page manually is expensive,
+      so a prioritization mechanism can help identify which pages should be
+      examined first.
+    </p>
+
+    <p>
+      This project focuses on the lane of
+      <strong>search discoverability and content improvement</strong>.
+      The decision supported by the analysis is:
+      <strong>which webpages should be prioritized for content investigation?</strong>
+    </p>
+
+    <p>
+      The ML task is formulated as a classification problem. Historical
+      page-level search-performance signals are used to estimate whether a
+      webpage is likely to exhibit the defined declining-performance outcome.
+    </p>
+
+    <div class="note">
+      <strong>Core-first principle:</strong>
+      The model is used to support an existing content-investigation workflow.
+      It does not replace human review or claim to determine why a page
+      performs poorly.
+    </div>
+  </section>
+
+
+  <section>
+    <h2>2. Data</h2>
+
+    <h3>Data source</h3>
+
+    <p>
+      The analysis uses the FlyRank internship warehouse release accessed
+      through the provided data environment.
+    </p>
+
+    <h3>Unit of analysis</h3>
+
+    <p>
+      The analysis unit is one content item for one client, represented by
+      the combination of:
+    </p>
+
+    <ul>
+      <li>Client identifier</li>
+      <li>Content identifier</li>
+    </ul>
+
+    <h3>Time windows</h3>
+
+    <table>
+      <tr>
+        <th>Window</th>
+        <th>Purpose</th>
+      </tr>
+
+      <tr>
+        <td>February 2026</td>
+        <td>Historical feature window</td>
+      </tr>
+
+      <tr>
+        <td>March 2026</td>
+        <td>Outcome / label window</td>
+      </tr>
+    </table>
+
+    <p>
+      The feature window precedes the label window. This separation helps
+      prevent future information from entering the feature set.
+    </p>
+
+    <h3>Feature selection</h3>
+
+    <p>
+      The model uses historical search-performance signals including:
+    </p>
+
+    <ul>
+      <li>Search impressions</li>
+      <li>Search clicks</li>
+      <li>Click-through rate (CTR)</li>
+      <li>Average search position</li>
+      <li>Number of days with available search data</li>
+    </ul>
+
+    <h3>Data exclusions</h3>
+
+    <p>
+      Pages without sufficient historical search activity were excluded from
+      the modeling universe using minimum impression and click thresholds.
+      This was intended to reduce extremely sparse observations and create a
+      more meaningful comparison population.
+    </p>
+
+    <p>
+      The final analysis frame contained
+      <strong>29,353 content observations</strong> after requiring measurable
+      outcome-window data.
+    </p>
+  </section>
+
+
+  <section>
+    <h2>3. Methodology</h2>
+
+    <h3>Target / proxy</h3>
+
+    <p>
+      The target is a binary outcome representing whether a content item
+      experienced the defined search-performance outcome during the March
+      2026 label window.
+    </p>
+
+    <p>
+      The target is treated as a proxy for identifying pages that may deserve
+      further investigation. It should not be interpreted as a direct
+      measurement of content quality.
+    </p>
+
+    <h3>Baseline</h3>
+
+    <p>
+      Week 4 established a transparent baseline ranking rule using two signals:
+      CTR gap and search-impression volume.
+    </p>
+
+    <p>
+      The baseline combines:
+    </p>
+
+    <ul>
+      <li>60% CTR-gap score</li>
+      <li>40% volume score</li>
+    </ul>
+
+    <p>
+      The baseline was intentionally simple and interpretable so that the ML
+      model could be compared against a clear non-ML alternative.
+    </p>
+
+    <h3>Machine-learning model</h3>
+
+    <p>
+      A decision-tree classifier was used as the initial ML model. The model
+      was trained using the historical feature window and evaluated on a
+      held-out test split.
+    </p>
+
+    <h3>Validation design</h3>
+
+    <p>
+      The data was divided into training and test sets using a stratified
+      split. The same held-out test set was used for comparing the ML model
+      and the Week 4 baseline.
+    </p>
+
+    <h3>Evaluation metric</h3>
+
+    <p>
+      ROC-AUC was used to measure ranking discrimination. Because the intended
+      use case is prioritization, the analysis also considers top-ranked
+      recommendations rather than relying only on a fixed classification
+      threshold.
+    </p>
+
+    <h3>Leakage check</h3>
+
+    <p>
+      A deliberate leakage experiment was performed during the data-contract
+      stage by introducing a future label-window variable into the feature
+      set. The resulting near-perfect performance demonstrated why future
+      outcome variables must not be included in the honest feature set.
+    </p>
+
+    <p>
+      The final model excludes future March outcome variables from its
+      predictive features.
+    </p>
+  </section>
+
+
+  <section>
+    <h2>4. Results</h2>
+
+    <p>
+      The ML model was evaluated against the Week 4 baseline on the same
+      held-out test split.
+    </p>
+
+    <div class="metric-container">
+
+      <div class="metric">
+        <div>ML Model</div>
+        <div class="metric-value">0.8314</div>
+        <div>ROC-AUC</div>
+      </div>
+
+      <div class="metric">
+        <div>Week 4 Baseline</div>
+        <div class="metric-value">0.2780</div>
+        <div>ROC-AUC</div>
+      </div>
+
+    </div>
+
+    <table>
+      <tr>
+        <th>Approach</th>
+        <th>ROC-AUC</th>
+      </tr>
+
+      <tr>
+        <td>ML Model</td>
+        <td>0.8314</td>
+      </tr>
+
+      <tr>
+        <td>Week 4 Baseline</td>
+        <td>0.2780</td>
+      </tr>
+    </table>
+
+    <h3>Interpretation</h3>
+
+    <p>
+      The ML model produced substantially stronger ranking discrimination than
+      the Week 4 baseline in this evaluation. The difference suggests that
+      combining multiple historical signals through a learned model can be
+      more effective for prioritization than the transparent baseline rule.
+    </p>
+
+    <p>
+      However, this result should be interpreted within the evaluation setup.
+      A higher ROC-AUC demonstrates better discrimination on this test split;
+      it does not prove future production performance or guarantee improved
+      search outcomes.
+    </p>
+
+    <h3>Model vs baseline chart</h3>
+
+    <img
+      src="../work/outputs/model_vs_baseline_roc_auc.png"
+      alt="ML model versus Week 4 baseline ROC-AUC comparison"
+    >
+
+  </section>
+
+
+  <section>
+    <h2>5. Limitations</h2>
+
+    <p>
+      This analysis provides directional, decision-support evidence based on
+      observed historical search-performance patterns.
+    </p>
+
+    <p>
+      The model predicts the defined outcome using historical page-level
+      signals, but the results do not establish that any specific content
+      characteristic causes search-performance changes.
+    </p>
+
+    <p>
+      The model cannot predict Google's ranking decisions, guarantee future
+      search performance, or guarantee that refreshing a page will increase
+      clicks or rankings.
+    </p>
+
+    <p>
+      The baseline and model are evaluated on the same held-out test split,
+      but the observed performance should not be interpreted as proof of
+      production performance on future unseen data.
+    </p>
+
+    <p>
+      The ranked recommendations should therefore be treated as a
+      prioritization queue for content investigation and improvement, rather
+      than as guaranteed actions or outcomes.
+    </p>
+
+    <p>
+      Public-facing analysis must also avoid client names, domains, private
+      queries, credentials, raw private exports, and claims about Google's
+      ranking algorithm.
+    </p>
+  </section>
+
+
+  <section>
+    <h2>6. Ranked Recommendations</h2>
+
+    <p>
+      The model output is intended to create a ranked prioritization queue
+      for content investigation.
+    </p>
+
+    <h3>Recommended action playbook</h3>
+
+    <ol>
+      <li>
+        Review the highest-ranked pages first.
+      </li>
+
+      <li>
+        Inspect search visibility and engagement signals for the selected page.
+      </li>
+
+      <li>
+        Investigate whether an identifiable content or search-discoverability
+        opportunity exists.
+      </li>
+
+      <li>
+        Prioritize pages where a content improvement is feasible and supported
+        by evidence.
+      </li>
+
+      <li>
+        Re-measure performance after changes where appropriate.
+      </li>
+    </ol>
+
+    <div class="note">
+      <strong>Important:</strong>
+      A high model score indicates prioritization value. It does not guarantee
+      that a content refresh will improve rankings, clicks, or other search
+      outcomes.
+    </div>
+  </section>
+
+
+  <section>
+    <h2>7. Reproducibility</h2>
+
+    <p>
+      The analysis was developed as a sequence of notebooks covering task
+      framing, data-contract design, baseline construction, and the final
+      capstone analysis.
+    </p>
+
+    <ul>
+      <li>Week 2 — ML task framing</li>
+      <li>Week 3 — Data contract and leakage experiment</li>
+      <li>Week 4 — Baseline action scoring</li>
+      <li>Capstone — Model development and evaluation</li>
+    </ul>
+
+    <p>
+      The notebooks are maintained in the project repository.
+    </p>
+
+    <p>
+      <a href="https://github.com/abishekr19/flyrank-ml-internship-starter">
+        GitHub Repository
+      </a>
+    </p>
+
+    <p>
+      <a href="https://github.com/abishekr19/flyrank-ml-internship-starter/blob/main/work/notebooks/capstone.ipynb">
+        Capstone Notebook
+      </a>
+    </p>
+  </section>
+
+
+  <section>
+    <h2>8. Acknowledgments &amp; Data Credit</h2>
+
+    <p>
+      <a href="https://flyrank.ai">
+        Built on the FlyRank ML Internship dataset
+      </a>
+    </p>
+
+    <p>
+      This work was completed as part of the FlyRank ML Internship.
+    </p>
+  </section>
+
+
+  <footer>
+    <p>
+      Refresh / Content Opportunity Scoring — FlyRank ML Internship Capstone
+    </p>
+
+    <p>
+      Results are presented for research and decision-support purposes.
+    </p>
+  </footer>
+
+</body>
+</html>
